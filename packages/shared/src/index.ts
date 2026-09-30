@@ -10,3 +10,4 @@ export * from './billing-validation.js';
 export * from './invoicing.js';
 export * from './health-fund.js';
 export * from './ean-pool.js';
+export * from './corporate-billing.js';

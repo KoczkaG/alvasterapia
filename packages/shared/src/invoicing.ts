@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { paymentMethodSchema } from './billing-validation.js';
+import { corporatePayeeSchema } from './corporate-billing.js';
 import { epFieldsSchema } from './health-fund.js';
 
 /**
@@ -26,23 +27,40 @@ export const invoiceItemSchema = z.object({
 export type InvoiceItem = z.infer<typeof invoiceItemSchema>;
 
 /** Számlatervezet létrehozási kérése. */
-export const createDraftSchema = z.object({
-  partnerCode: z.string().min(1),
-  items: z.array(invoiceItemSchema).min(1, 'Legalább egy tétel szükséges.'),
-  payment: paymentMethodSchema,
-  /**
-   * Opcionális egészségpénztári adatok (II/B). Ha jelen van, a számla vevő-adata
-   * az EP-logika szerint áll össze (hierarchikus névsorrend; szigorú EP-nél
-   * székhely + adószám). A beteg profiladatai ettől nem módosulnak.
-   */
-  ep: epFieldsSchema.optional(),
-  /**
-   * Igaz, ha ez TB-támogatott (vényes) értékesítés. Ilyenkor a véglegesítéskor
-   * a rendszer automatikusan kioszt egy hatósági EAN-kódot a pool-ból, és
-   * ráégeti a számlára (II/C 2. pont).
-   */
-  prescription: z.boolean().optional(),
-});
+export const createDraftSchema = z
+  .object({
+    partnerCode: z.string().min(1),
+    items: z.array(invoiceItemSchema).min(1, 'Legalább egy tétel szükséges.'),
+    payment: paymentMethodSchema,
+    /**
+     * Opcionális egészségpénztári adatok (II/B). Ha jelen van, a számla vevő-adata
+     * az EP-logika szerint áll össze (hierarchikus névsorrend; szigorú EP-nél
+     * székhely + adószám). A beteg profiladatai ettől nem módosulnak.
+     */
+    ep: epFieldsSchema.optional(),
+    /**
+     * Opcionális céges (belföldi adóalany) vevő-adat (II/A). Ha jelen van, a
+     * számla erre a cégre szól (név + székhely + adószám). A beteg
+     * profiladatai ettől NEM módosulnak (adatmegőrzési protokoll).
+     */
+    corporate: corporatePayeeSchema.optional(),
+    /**
+     * Igaz, ha ez TB-támogatott (vényes) értékesítés. Ilyenkor a véglegesítéskor
+     * a rendszer automatikusan kioszt egy hatósági EAN-kódot a pool-ból, és
+     * ráégeti a számlára (II/C 2. pont).
+     */
+    prescription: z.boolean().optional(),
+    /**
+     * Opcionális idempotencia-kulcs a számla-duplikáció ellen (II/A). Ha ugyanaz
+     * a kulcs kétszer érkezik, a rendszer a MEGLÉVŐ tervezetet adja vissza.
+     */
+    idempotencyKey: z.string().min(1).optional(),
+  })
+  // Egy számlán VAGY EP, VAGY céges vevő lehet — nem mindkettő (II/A).
+  .refine((d) => !(d.ep && d.corporate), {
+    message: 'Egy számlán vagy egészségpénztári, vagy céges vevő adható meg, nem mindkettő.',
+    path: ['corporate'],
+  });
 export type CreateDraft = z.infer<typeof createDraftSchema>;
 
 /** A számla életciklus-státusza. */

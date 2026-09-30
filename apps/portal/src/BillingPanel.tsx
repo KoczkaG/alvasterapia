@@ -45,6 +45,12 @@ export function BillingPanel() {
   const [membershipId, setMembershipId] = useState('');
   const [beneficiaryName, setBeneficiaryName] = useState('');
 
+  // Céges (belföldi adóalany) számla (II/A) — kizárja az EP-t
+  const [corpRequested, setCorpRequested] = useState(false);
+  const [corpName, setCorpName] = useState('');
+  const [corpAddress, setCorpAddress] = useState('');
+  const [corpTax, setCorpTax] = useState('');
+
   useEffect(() => {
     void getHealthFunds().then(setFunds).catch(() => undefined);
   }, []);
@@ -100,8 +106,16 @@ export function BillingPanel() {
   async function finalize() {
     setError(null);
     setResult(null);
+    if (epRequested && corpRequested) {
+      setError('Egy számlán vagy EP, vagy céges vevő adható meg — nem mindkettő.');
+      return;
+    }
     if (epRequested && (!fundId || !membershipId.trim())) {
       setError('EP-s számlához válasszon pénztárat és adja meg a tagi azonosítót.');
+      return;
+    }
+    if (corpRequested && (!corpName.trim() || !corpAddress.trim() || !corpTax.trim())) {
+      setError('Céges számlához adja meg a cégnevet, székhelyet és adószámot.');
       return;
     }
     setBusy(true);
@@ -118,6 +132,15 @@ export function BillingPanel() {
                   fundId,
                   membershipId: membershipId.trim(),
                   beneficiaryName: beneficiaryName.trim() || undefined,
+                },
+              }
+            : {}),
+          ...(corpRequested
+            ? {
+                corporate: {
+                  name: corpName.trim(),
+                  address: corpAddress.trim(),
+                  taxNumber: corpTax.trim(),
                 },
               }
             : {}),
@@ -270,9 +293,13 @@ export function BillingPanel() {
           <input
             type="checkbox"
             checked={epRequested}
+            disabled={corpRequested}
             onChange={(e) => setEpRequested(e.target.checked)}
           />
-          <span className="consent-text">EP-s számlát kér</span>
+          <span className="consent-text">
+            EP-s számlát kér
+            {corpRequested && ' — (céges számlával együtt nem választható)'}
+          </span>
         </label>
 
         {epRequested && (
@@ -314,6 +341,53 @@ export function BillingPanel() {
               type="text"
               value={beneficiaryName}
               onChange={(e) => setBeneficiaryName(e.target.value)}
+            />
+          </>
+        )}
+      </section>
+
+      {/* Céges (belföldi adóalany) számla (II/A) */}
+      <section className="card">
+        <h2>Céges számla</h2>
+        <label className="consent-item" style={{ borderBottom: 'none' }}>
+          <input
+            type="checkbox"
+            checked={corpRequested}
+            disabled={epRequested}
+            onChange={(e) => setCorpRequested(e.target.checked)}
+          />
+          <span className="consent-text">
+            Céges (belföldi adóalany) számlát kér
+            {epRequested && ' — (EP-vel együtt nem választható)'}
+          </span>
+        </label>
+
+        {corpRequested && (
+          <>
+            <div className="banner ok" style={{ marginTop: 12 }}>
+              A számla a cégre szól — a beteg saját adatlapja NEM módosul.
+            </div>
+            <label htmlFor="cn">Cégnév</label>
+            <input
+              id="cn"
+              type="text"
+              value={corpName}
+              onChange={(e) => setCorpName(e.target.value)}
+            />
+            <label htmlFor="ca">Székhely</label>
+            <input
+              id="ca"
+              type="text"
+              value={corpAddress}
+              onChange={(e) => setCorpAddress(e.target.value)}
+            />
+            <label htmlFor="ct">Adószám</label>
+            <input
+              id="ct"
+              type="text"
+              placeholder="12345678-2-42"
+              value={corpTax}
+              onChange={(e) => setCorpTax(e.target.value)}
             />
           </>
         )}

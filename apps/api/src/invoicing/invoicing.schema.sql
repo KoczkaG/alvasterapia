@@ -7,6 +7,11 @@ CREATE TABLE IF NOT EXISTS invoice_drafts (
   items          JSONB NOT NULL,
   payment        TEXT NOT NULL,
   amount_gross   NUMERIC(12,2) NOT NULL,
+  -- Duplikáció-védelem (II/A): opcionális idempotencia-kulcs. Ha ugyanaz a
+  -- kulcs kétszer érkezik (pl. hálózati újrapróbálkozás, postai utánvétes
+  -- fantomszámla), a rendszer a MEGLÉVŐ tervezetet adja vissza, nem hoz létre
+  -- másodikat.
+  idempotency_key TEXT UNIQUE,
   -- A számla vevő-adata (EP-nél összefűzött név + esetleg székhely/adószám).
   -- JSONB: { name, address, taxNumber? }. Sima magánszemélynél NULL is lehet.
   payee          JSONB,
