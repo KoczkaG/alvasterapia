@@ -2,13 +2,15 @@ import {
   invoiceTotal,
   PAYMENT_METHOD_LABELS,
   type BillingCodeKind,
+  type HealthFund,
   type InvoiceItem,
   type PaymentMethod,
 } from '@somnoshop/shared';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   createDraft,
   finalizeDraft,
+  getHealthFunds,
   validateCode,
   type FinalizeResult,
 } from './invoicingApi';
@@ -34,6 +36,19 @@ export function BillingPanel() {
   ]);
   const [payment, setPayment] = useState<PaymentMethod>('card');
   const [partnerCode] = useState('P-000123');
+
+  // Egészségpénztári (EP) adatkapu (II/B)
+  const [funds, setFunds] = useState<HealthFund[]>([]);
+  const [epRequested, setEpRequested] = useState(false);
+  const [fundId, setFundId] = useState('');
+  const [membershipId, setMembershipId] = useState('');
+  const [beneficiaryName, setBeneficiaryName] = useState('');
+
+  useEffect(() => {
+    void getHealthFunds().then(setFunds).catch(() => undefined);
+  }, []);
+
+  const selectedFund = funds.find((f) => f.id === fundId);
 
   const [newCode, setNewCode] = useState('');
   const [newName, setNewName] = useState('');
@@ -84,9 +99,29 @@ export function BillingPanel() {
   async function finalize() {
     setError(null);
     setResult(null);
+    if (epRequested && (!fundId || !membershipId.trim())) {
+      setError('EP-s számlához válasszon pénztárat és adja meg a tagi azonosítót.');
+      return;
+    }
     setBusy(true);
     try {
-      const draft = await createDraft({ partnerCode, items, payment }, OPERATOR);
+      const draft = await createDraft(
+        {
+          partnerCode,
+          items,
+          payment,
+          ...(epRequested
+            ? {
+                ep: {
+                  fundId,
+                  membershipId: membershipId.trim(),
+                  beneficiaryName: beneficiaryName.trim() || undefined,
+                },
+              }
+            : {}),
+        },
+        OPERATOR,
+      );
       const fin = await finalizeDraft(draft.id, OPERATOR);
       setResult(fin);
     } catch (e) {
@@ -226,6 +261,62 @@ export function BillingPanel() {
         </button>
       </section>
 
+      {/* Egészségpénztári (EP) adatkapu (II/B) */}
+      <section className="card">
+        <h2>Egészségpénztár</h2>
+        <label className="consent-item" style={{ borderBottom: 'none' }}>
+          <input
+            type="checkbox"
+            checked={epRequested}
+            onChange={(e) => setEpRequested(e.target.checked)}
+          />
+          <span className="consent-text">EP-s számlát kér</span>
+        </label>
+
+        {epRequested && (
+          <>
+            <label htmlFor="fund">Egészségpénztár</label>
+            <select
+              id="fund"
+              value={fundId}
+              onChange={(e) => setFundId(e.target.value)}
+            >
+              <option value="">— válasszon —</option>
+              {funds.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                  {f.strict ? ' ⚠️' : ''}
+                </option>
+              ))}
+            </select>
+
+            {selectedFund?.strict && (
+              <div className="banner warn" style={{ marginTop: 12 }}>
+                FIGYELEM! Ez az egészségpénztár kizárólag adószámmal és a saját
+                hivatalos címével fogadja be a számlát! A rendszer a vevő-adatot
+                automatikusan átállítja — a beteg profilja nem módosul.
+              </div>
+            )}
+
+            <label htmlFor="mid">Tagi azonosító</label>
+            <input
+              id="mid"
+              type="text"
+              value={membershipId}
+              onChange={(e) => setMembershipId(e.target.value)}
+            />
+
+            <label htmlFor="ben">Kedvezményezett neve (opcionális)</label>
+            <input
+              id="ben"
+              type="text"
+              value={beneficiaryName}
+              onChange={(e) => setBeneficiaryName(e.target.value)}
+            />
+          </>
+        )}
+      </section>
+
       {/* Fizetési mód + véglegesítés */}
       <section className="card">
         <h2>Fizetés és lezárás</h2>
@@ -259,6 +350,18 @@ export function BillingPanel() {
               Számla kiállítva: <strong>{result.draft.invoiceNumber}</strong> (
               {result.draft.amountGross.toLocaleString('hu-HU')} Ft). A számla a
               beteg idővonalára került.
+              {result.draft.payee && (
+                <>
+                  <br />
+                  Vevő (NÉV mező): <em>{result.draft.payee.name}</em>
+                  {result.draft.payee.taxNumber && (
+                    <>
+                      {' '}
+                      — adószám: {result.draft.payee.taxNumber}
+                    </>
+                  )}
+                </>
+              )}
             </>
           ) : (
             <>

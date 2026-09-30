@@ -40,12 +40,14 @@ export class InvoiceMockAdapter implements InvoicePort {
     partnerCode: string;
     amountGross: number;
     reference: string;
+    payee?: { name: string; address: string; taxNumber?: string } | null;
   }): Promise<IssuedInvoice> {
     const invoiceNumber = `SZ-${new Date().getFullYear()}-${String(
       ++this.seq,
     ).padStart(6, '0')}`;
     this.logger.debug(
-      `[MOCK NAV] számla kiállítva: ${invoiceNumber} (${params.amountGross} Ft)`,
+      `[MOCK NAV] számla kiállítva: ${invoiceNumber} (${params.amountGross} Ft)` +
+        (params.payee ? ` — vevő: ${params.payee.name}` : ''),
     );
     return {
       invoiceNumber,

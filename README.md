@@ -58,7 +58,20 @@ npm run dev -w apps/portal  # páciens-portál
 | I/F — Automata „ADATLAP HIÁNYOS" protokoll | ✅ mag kész (e-mail/SMS adapter mockkal) |
 | **I. MODUL — teljes** | ✅ mind a 6 rész (A–F) magja kész |
 | II/D — Pulti védőháló & számlázás | ✅ mag kész (terminál/NAV adapter mockkal) |
-| Többi II. modul rész (A, B, C, E) | ⏳ tervezett |
+| II/B — Egészségpénztári (EP) adatkapu | ✅ mag kész |
+| Többi II. modul rész (A, C, E) | ⏳ tervezett |
+
+### II/B — Integrált Egészségpénztári (EP) Adatkapu
+
+Az EP-s számlázás automatizálása. A pultos megadja az EP-t, a tagi azonosítót és
+(opcionálisan) a kedvezményezettet; a rendszer a számla NÉV mezőjét **automatikusan,
+szigorú hierarchikus sorrendben** fűzi össze:
+`[Beteg] / [EP] (Kedvezményezett: [név] / Tagi azonosító: [szám])`.
+A könnyített EP-nél a számla a beteg lakcímére szól; a **szigorú EP-knél**
+(„Riasztó/Zászló") automatikusan az EP székhelye + adószáma kerül a vevő-adatba —
+**a beteg profiladatai közben érintetlenek maradnak**. Végpont:
+`GET /invoicing/health-funds` (törzsadat); az EP-adatok a számlatervezet
+(`POST /invoicing/drafts`) `ep` mezőjében adhatók meg. Pulti demó: `?view=billing`.
 
 ### II/D — Pulti Védőháló és Terminál-Kassza
 

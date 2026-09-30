@@ -8,13 +8,17 @@ import {
 import {
   checkClosingRules,
   invoiceTotal,
+  resolveEpPayee,
   type CreateDraft,
   type InvoiceItem,
+  type InvoicePayee,
   type PaymentMethod,
 } from '@somnoshop/shared';
 import { AuditService } from '../audit/audit.service';
 import { DatabaseService } from '../database/database.service';
+import { KVL_PORT, type KvlPort } from '../kvl/kvl.port';
 import { TIMELINE_PORT, type TimelinePort } from '../timeline/timeline.port';
+import { HealthFundService } from './health-fund.service';
 import { INVOICE_PORT, type InvoicePort } from './invoice.port';
 
 export interface DraftRecord {
@@ -24,6 +28,8 @@ export interface DraftRecord {
   payment: PaymentMethod;
   amountGross: number;
   status: string;
+  /** A számla vevő-adata (EP-nél összefűzött név; szigorúnál székhely+adószám). */
+  payee: InvoicePayee | null;
   invoiceNumber: string | null;
   pdfUri: string | null;
 }
@@ -52,8 +58,10 @@ export class InvoicingService {
   constructor(
     private readonly db: DatabaseService,
     private readonly audit: AuditService,
+    private readonly healthFunds: HealthFundService,
     @Inject(INVOICE_PORT) private readonly invoices: InvoicePort,
     @Inject(TIMELINE_PORT) private readonly timeline: TimelinePort,
+    @Inject(KVL_PORT) private readonly kvl: KvlPort,
   ) {}
 
   /** Tervezet létrehozása a zárási szűrő ellenőrzésével. */
@@ -74,16 +82,21 @@ export class InvoicingService {
     }
 
     const amount = invoiceTotal(input.items);
+
+    // Egészségpénztári (EP) vevőadat feloldása, ha EP-mezők érkeztek (II/B).
+    const payee = await this.resolveEpPayeeIfNeeded(input);
+
     const res = await this.db.query<{ id: string }>(
       `INSERT INTO invoice_drafts
-         (partner_code, items, payment, amount_gross, status, operator)
-       VALUES ($1, $2, $3, $4, 'draft', $5)
+         (partner_code, items, payment, amount_gross, payee, status, operator)
+       VALUES ($1, $2, $3, $4, $5, 'draft', $6)
        RETURNING id`,
       [
         input.partnerCode,
         JSON.stringify(input.items),
         input.payment,
         amount,
+        payee ? JSON.stringify(payee) : null,
         operator,
       ],
     );
@@ -94,10 +107,49 @@ export class InvoicingService {
       action: 'CREATE',
       entityType: 'invoice_draft',
       entityId: id,
-      detail: { partnerCode: input.partnerCode, amount, payment: input.payment },
+      detail: {
+        partnerCode: input.partnerCode,
+        amount,
+        payment: input.payment,
+        ep: input.ep ? { fundId: input.ep.fundId, strict: payee?.taxNumber != null } : undefined,
+      },
     });
 
     return this.getOrThrow(id);
+  }
+
+  /**
+   * Ha EP-mezők érkeztek, a beteg adatai alapján összeállítja a számla
+   * vevő-adatát (hierarchikus névsorrend; szigorú EP-nél székhely + adószám).
+   * A beteg KVL-profilját NEM módosítja — ez csak a bizonylat vevő-adata.
+   */
+  private async resolveEpPayeeIfNeeded(
+    input: CreateDraft,
+  ): Promise<InvoicePayee | null> {
+    if (!input.ep) return null;
+
+    const fund = this.healthFunds.get(input.ep.fundId);
+    if (!fund) {
+      throw new BadRequestException({
+        error: { code: 'UNKNOWN_HEALTH_FUND', message: 'Ismeretlen egészségpénztár.' },
+      });
+    }
+
+    const search = await this.kvl.searchPartner({ partnerCode: input.partnerCode });
+    if (search.matchType !== 'single') {
+      throw new BadRequestException({
+        error: { code: 'PARTNER_NOT_FOUND', message: 'A partner nem található az EP-számlához.' },
+      });
+    }
+    const p = search.partner;
+    const patientAddress = [p.zip, p.city, p.address].filter(Boolean).join(' ');
+
+    return resolveEpPayee({
+      fund,
+      patientName: p.name,
+      patientAddress,
+      fields: input.ep,
+    });
   }
 
   /**
@@ -147,6 +199,7 @@ export class InvoicingService {
       partnerCode: draft.partnerCode,
       amountGross: draft.amountGross,
       reference: draftId,
+      payee: draft.payee,
     });
 
     await this.db.query(
@@ -187,11 +240,12 @@ export class InvoicingService {
       items: InvoiceItem[];
       payment: PaymentMethod;
       amount_gross: string | number;
+      payee: InvoicePayee | null;
       status: string;
       invoice_number: string | null;
       pdf_uri: string | null;
     }>(
-      `SELECT id, partner_code, items, payment, amount_gross, status,
+      `SELECT id, partner_code, items, payment, amount_gross, payee, status,
               invoice_number, pdf_uri
          FROM invoice_drafts WHERE id = $1`,
       [draftId],
@@ -204,6 +258,7 @@ export class InvoicingService {
       items: Array.isArray(r.items) ? r.items : [],
       payment: r.payment,
       amountGross: Number(r.amount_gross),
+      payee: r.payee ?? null,
       status: r.status,
       invoiceNumber: r.invoice_number,
       pdfUri: r.pdf_uri,

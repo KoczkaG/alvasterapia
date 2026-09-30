@@ -8,3 +8,4 @@ export * from './call-notes.js';
 export * from './data-completeness.js';
 export * from './billing-validation.js';
 export * from './invoicing.js';
+export * from './health-fund.js';
