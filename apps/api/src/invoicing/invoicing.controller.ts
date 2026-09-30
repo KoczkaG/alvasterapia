@@ -15,6 +15,7 @@ import {
   type CreateDraft,
 } from '@somnoshop/shared';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { HealthFundService } from './health-fund.service';
 import { InvoicingService } from './invoicing.service';
 
 /** Egyetlen kód ellenőrzésének kérés-törzse (élő pulti validáció). */
@@ -32,10 +33,22 @@ type ValidateCodeBody = z.infer<typeof validateCodeSchema>;
  */
 @Controller('invoicing')
 export class InvoicingController {
-  constructor(private readonly svc: InvoicingService) {}
+  constructor(
+    private readonly svc: InvoicingService,
+    private readonly healthFunds: HealthFundService,
+  ) {}
 
   private operator(header?: string): string {
     return header?.trim() || 'operator:unknown';
+  }
+
+  /**
+   * GET /invoicing/health-funds — az EP-legördülő törzsadata (II/B).
+   * A `strict` mező jelzi a szigorú (székhely+adószám) pénztárakat.
+   */
+  @Get('health-funds')
+  healthFundList() {
+    return this.healthFunds.list();
   }
 
   /**

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { paymentMethodSchema } from './billing-validation.js';
+import { epFieldsSchema } from './health-fund.js';
 
 /**
  * Számlázási folyamat modell (II. Modul / D — Pulti Védőháló és Terminál-Kassza).
@@ -29,6 +30,12 @@ export const createDraftSchema = z.object({
   partnerCode: z.string().min(1),
   items: z.array(invoiceItemSchema).min(1, 'Legalább egy tétel szükséges.'),
   payment: paymentMethodSchema,
+  /**
+   * Opcionális egészségpénztári adatok (II/B). Ha jelen van, a számla vevő-adata
+   * az EP-logika szerint áll össze (hierarchikus névsorrend; szigorú EP-nél
+   * székhely + adószám). A beteg profiladatai ettől nem módosulnak.
+   */
+  ep: epFieldsSchema.optional(),
 });
 export type CreateDraft = z.infer<typeof createDraftSchema>;
 

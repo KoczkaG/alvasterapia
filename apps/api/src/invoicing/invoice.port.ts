@@ -35,11 +35,14 @@ export interface InvoicePort {
 
   /**
    * Éles, NAV-sorszámos e-számla kiállítása (csak sikeres fizetés után hívjuk).
+   * A `payee` a számlára kerülő vevő-adat (EP-nél az összefűzött név; szigorú
+   * EP-nél a székhely + adószám). Sima magánszemélynél elhagyható.
    */
   issueInvoice(params: {
     partnerCode: string;
     amountGross: number;
     reference: string;
+    payee?: { name: string; address: string; taxNumber?: string } | null;
   }): Promise<IssuedInvoice>;
 }
 

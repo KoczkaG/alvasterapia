@@ -7,6 +7,9 @@ CREATE TABLE IF NOT EXISTS invoice_drafts (
   items          JSONB NOT NULL,
   payment        TEXT NOT NULL,
   amount_gross   NUMERIC(12,2) NOT NULL,
+  -- A számla vevő-adata (EP-nél összefűzött név + esetleg székhely/adószám).
+  -- JSONB: { name, address, taxNumber? }. Sima magánszemélynél NULL is lehet.
+  payee          JSONB,
   -- draft | awaiting_payment | issued | cancelled
   status         TEXT NOT NULL DEFAULT 'draft',
   -- Éles számla adatai (csak issued státuszban):

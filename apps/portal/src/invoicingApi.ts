@@ -1,7 +1,9 @@
 import type {
   BillingCodeKind,
   CreateDraft,
+  HealthFund,
   InvoiceItem,
+  InvoicePayee,
   PaymentMethod,
 } from '@somnoshop/shared';
 
@@ -45,9 +47,14 @@ export interface DraftRecord {
   items: InvoiceItem[];
   payment: PaymentMethod;
   amountGross: number;
+  payee: InvoicePayee | null;
   status: string;
   invoiceNumber: string | null;
   pdfUri: string | null;
+}
+
+export async function getHealthFunds(): Promise<HealthFund[]> {
+  return handle<HealthFund[]>(await fetch(`${BASE}/invoicing/health-funds`));
 }
 
 export interface FinalizeResult {
