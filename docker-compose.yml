@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: somnoshop-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: somnoshop
+      POSTGRES_PASSWORD: somnoshop_dev
+      POSTGRES_DB: somnoshop
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:

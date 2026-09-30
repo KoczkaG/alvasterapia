@@ -1,0 +1,20 @@
+{
+  "name": "somnoshop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SOMNO SHOP belső rendszer — KVL-kiegészítő (I/A GDPR modul)",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "dev:api": "npm run dev -w apps/api",
+    "dev:portal": "npm run dev -w apps/portal"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
