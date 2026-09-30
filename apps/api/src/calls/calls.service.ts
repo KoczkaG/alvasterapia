@@ -1,11 +1,14 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
+  CALL_TOPIC_LABELS,
   RECORDING_STOPPED_REASON,
+  type CallNote,
   type RecordingConsent,
   type StartCall,
 } from '@somnoshop/shared';
 import { AuditService } from '../audit/audit.service';
 import { DatabaseService } from '../database/database.service';
+import { TASK_PORT, type TaskPort } from '../tasks/task.port';
 import { TIMELINE_PORT, type TimelinePort } from '../timeline/timeline.port';
 import { VOIP_PORT, type VoipPort } from './voip.port';
 
@@ -39,6 +42,7 @@ export class CallsService {
     private readonly audit: AuditService,
     @Inject(VOIP_PORT) private readonly voip: VoipPort,
     @Inject(TIMELINE_PORT) private readonly timeline: TimelinePort,
+    @Inject(TASK_PORT) private readonly tasks: TaskPort,
   ) {}
 
   /** Hívás indítása: rekord létrehozása + VoIP-tárcsázás + audit. */
@@ -198,6 +202,82 @@ export class CallsService {
     });
 
     return this.getOrThrow(callId);
+  }
+
+  /**
+   * Hívás lezárása a KÖTELEZŐ hívásvégi jegyzettel együtt (I/E, "A" megközelítés).
+   * Egy lépésben: lezárja a hívást, rögzíti a strukturált jegyzetet, a lényeget
+   * a Timeline-ra írja, és visszahívási igény esetén feladatot generál.
+   */
+  async completeWithNote(
+    callId: string,
+    outcome: 'completed' | 'failed',
+    note: CallNote,
+    operator: string,
+  ): Promise<CallRecord> {
+    // 1. A hívás életciklusa (felvétel lezárása, alap Timeline-esemény, audit).
+    const record = await this.complete(callId, outcome, operator);
+
+    // 2. A strukturált jegyzet rögzítése (statisztikai forrás).
+    await this.db.query(
+      `INSERT INTO call_notes
+         (call_id, partner_code, topics, referrer_id, summary, follow_up, operator)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        callId,
+        record.partnerCode,
+        JSON.stringify(note.topics),
+        note.referrerId ?? null,
+        note.summary,
+        note.followUpNeeded,
+        operator,
+      ],
+    );
+
+    // 3. A jegyzet lényege a beteg Idővonalára (Timeline).
+    const topicLabels = note.topics
+      .map((t) => CALL_TOPIC_LABELS[t])
+      .join(', ');
+    await this.timeline.append({
+      partnerCode: record.partnerCode,
+      type: 'CALL_NOTE',
+      text: `Hívásvégi jegyzet — ${topicLabels}: ${note.summary}`,
+      occurredAt: new Date().toISOString(),
+      detail: {
+        callId,
+        topics: note.topics,
+        ...(note.referrerId ? { referrerId: note.referrerId } : {}),
+        followUpNeeded: note.followUpNeeded,
+      },
+    });
+
+    // 4. Visszahívási igény → automata feladatgenerálás (I/E 3. pont).
+    if (note.followUpNeeded) {
+      const task = await this.tasks.create({
+        title: `Visszahívás / teendő — ${record.partnerCode}`,
+        detail: `${topicLabels}\n${note.summary}`,
+        partnerCode: record.partnerCode,
+        source: 'call_note',
+        refId: callId,
+      });
+      await this.audit.record({
+        actor: operator,
+        action: 'CREATE',
+        entityType: 'task',
+        entityId: task.id,
+        detail: { source: 'call_note', callId },
+      });
+    }
+
+    await this.audit.record({
+      actor: operator,
+      action: 'CREATE',
+      entityType: 'call_note',
+      entityId: callId,
+      detail: { topics: note.topics, followUpNeeded: note.followUpNeeded },
+    });
+
+    return record;
   }
 
   async get(callId: string): Promise<CallRecord | null> {
