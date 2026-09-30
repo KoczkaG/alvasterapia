@@ -11,6 +11,7 @@ import { KvlModule } from './kvl/kvl.module';
 import { NotificationModule } from './notifications/notification.module';
 import { PatientsModule } from './patients/patients.module';
 import { PostalCodeModule } from './postal-code/postal-code.module';
+import { SettlementModule } from './settlement/settlement.module';
 import { TasksModule } from './tasks/tasks.module';
 import { TimelineModule } from './timeline/timeline.module';
 
@@ -29,6 +30,7 @@ import { TimelineModule } from './timeline/timeline.module';
     CompletenessModule,
     InvoicingModule,
     EanPoolModule,
+    SettlementModule,
   ],
   controllers: [HealthController],
 })

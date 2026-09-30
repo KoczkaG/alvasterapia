@@ -61,7 +61,8 @@ npm run dev -w apps/portal  # páciens-portál
 | II/B — Egészségpénztári (EP) adatkapu | ✅ mag kész |
 | II/C — Virtuális EAN-kód pool & hibrid e-számlázás | ✅ mag kész |
 | II/A — Adónem-váltási adatvédelem & duplikáció-védelem | ✅ mag kész |
-| II/E — Automata háttér-statisztika & OEP egyeztető | ⏳ tervezett |
+| II/E — Elszámolás, kihordási idő & OEP egyeztető | ✅ mag kész (Mankó/EESZT adapter mockkal) |
+| **II. MODUL — teljes** | ✅ mind az 5 rész (A–E) magja kész |
 
 ### II/A — Adónem-váltási Adatvédelem és Duplikáció-védelem
 
@@ -74,6 +75,29 @@ számla-duplikáció ellen **idempotencia-kulcs**: ugyanaz a kulcs a meglévő
 tervezetet adja vissza, nem hoz létre másodikat. A számlatervezet
 (`POST /invoicing/drafts`) `corporate` és `idempotencyKey` mezőin keresztül.
 Pulti demó: `?view=billing` (céges számla szekció).
+
+### II/E — Elszámolás, Kihordási Idő és OEP Napi Egyeztető
+
+A II. modul záró része három, tisztán számítható funkció:
+
+- **Kihordási idő (konfigurálható)**: termékenkénti hónap-szabály (törzsadat,
+  admin által felülírható; alap: maszk 12, párna 6, gégecső 6, szűrő 3 hó).
+  Ebből számoljuk, **mikortól jár** új, TB-támogatott eszköz
+  (`vásárlás + kihordás`). A jogosultság-ellenőrző visszaadja a dátumot és hogy
+  a beteg **most már jogosult-e**.
+- **Kaució-Elszámoló Adatlap**: a próbaidőszak végi visszajáró **átlátható,
+  feketén-fehéren** levezetése (befizetések − levonások), a „miért csak ennyit
+  kaptam vissza" telefonos reklamációk megszüntetésére. Az eredményt (visszajáró
+  vagy ráfizetés) e-mailben is elküldi a betegnek, ha van címe — **a beteg
+  KVL-profilját közben nem módosítja**.
+- **OEP Napi Egyeztető**: a KVL-es (általunk kiállított) darabszámokat összeveti
+  a **Mankó (EESZT) hivatalos** darabszámaival termékenként; az eltérést azonnal
+  kijelzi, hogy még **aznap** javítható legyen. A pillanatkép elmentődik.
+
+Végpontok: `GET|POST /settlement/wear-time-rules`, `GET /settlement/eligibility`,
+`POST /settlement/deposit`, `POST /settlement/oep-reconcile`. A Mankó (EESZT)
+hivatalos darabszámok a `MankoPort` mögött (mock); az értesítés a
+`NotificationPort` mögött. Admin/pulti demó: `?view=settlement`.
 
 ### II/C — Virtuális EAN-kód Pool
 
