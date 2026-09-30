@@ -8,6 +8,7 @@ import {
 import {
   checkClosingRules,
   invoiceTotal,
+  resolveCorporatePayee,
   resolveEpPayee,
   type CreateDraft,
   type InvoiceItem,
@@ -72,6 +73,18 @@ export class InvoicingService {
 
   /** Tervezet létrehozása a zárási szűrő ellenőrzésével. */
   async createDraft(input: CreateDraft, operator: string): Promise<DraftRecord> {
+    // Duplikáció-védelem (II/A): ha ehhez az idempotencia-kulcshoz már van
+    // tervezet, azt adjuk vissza — nem hozunk létre másodikat.
+    if (input.idempotencyKey) {
+      const existing = await this.db.query<{ id: string }>(
+        `SELECT id FROM invoice_drafts WHERE idempotency_key = $1`,
+        [input.idempotencyKey],
+      );
+      if (existing.rows[0]) {
+        return this.getOrThrow(existing.rows[0].id);
+      }
+    }
+
     // Kétirányú logikai zárási szűrő (postaköltség ⇄ fizetési mód).
     const closing = checkClosingRules(
       input.items.map((i) => ({
@@ -90,12 +103,12 @@ export class InvoicingService {
     const amount = invoiceTotal(input.items);
 
     // Egészségpénztári (EP) vevőadat feloldása, ha EP-mezők érkeztek (II/B).
-    const payee = await this.resolveEpPayeeIfNeeded(input);
+    const payee = await this.resolvePayeeIfNeeded(input);
 
     const res = await this.db.query<{ id: string }>(
       `INSERT INTO invoice_drafts
-         (partner_code, items, payment, amount_gross, payee, prescription, status, operator)
-       VALUES ($1, $2, $3, $4, $5, $6, 'draft', $7)
+         (partner_code, items, payment, amount_gross, payee, prescription, idempotency_key, status, operator)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'draft', $8)
        RETURNING id`,
       [
         input.partnerCode,
@@ -104,6 +117,7 @@ export class InvoicingService {
         amount,
         payee ? JSON.stringify(payee) : null,
         input.prescription ?? false,
+        input.idempotencyKey ?? null,
         operator,
       ],
     );
@@ -126,13 +140,19 @@ export class InvoicingService {
   }
 
   /**
-   * Ha EP-mezők érkeztek, a beteg adatai alapján összeállítja a számla
-   * vevő-adatát (hierarchikus névsorrend; szigorú EP-nél székhely + adószám).
-   * A beteg KVL-profilját NEM módosítja — ez csak a bizonylat vevő-adata.
+   * A számla vevő-adatának feloldása, ha EP vagy céges (belföldi adóalany) adat
+   * érkezett. Mindkét esetben KIZÁRÓLAG a bizonylat vevő-adata áll össze — a
+   * beteg KVL-profilja érintetlen marad (II/A adatmegőrzési protokoll, II/B).
+   * (Az EP és a céges kizárja egymást — a séma refine-je garantálja.)
    */
-  private async resolveEpPayeeIfNeeded(
+  private async resolvePayeeIfNeeded(
     input: CreateDraft,
   ): Promise<InvoicePayee | null> {
+    // Céges (belföldi adóalany) vevő: a cég neve + székhelye + adószáma.
+    if (input.corporate) {
+      return resolveCorporatePayee(input.corporate);
+    }
+
     if (!input.ep) return null;
 
     const fund = this.healthFunds.get(input.ep.fundId);

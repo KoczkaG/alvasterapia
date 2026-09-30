@@ -60,7 +60,20 @@ npm run dev -w apps/portal  # páciens-portál
 | II/D — Pulti védőháló & számlázás | ✅ mag kész (terminál/NAV adapter mockkal) |
 | II/B — Egészségpénztári (EP) adatkapu | ✅ mag kész |
 | II/C — Virtuális EAN-kód pool & hibrid e-számlázás | ✅ mag kész |
-| Többi II. modul rész (A, E) | ⏳ tervezett |
+| II/A — Adónem-váltási adatvédelem & duplikáció-védelem | ✅ mag kész |
+| II/E — Automata háttér-statisztika & OEP egyeztető | ⏳ tervezett |
+
+### II/A — Adónem-váltási Adatvédelem és Duplikáció-védelem
+
+A dokumentum kritikus elvárása: magánszemély → belföldi adóalany váltásnál a
+beteg törzsadatai **soha nem törlődhetnek**. A megvalósítás: a céges vevő-adat
+(cégnév + székhely + adószám) **külön vevő-adatként** kerül a bizonylatra — a
+beteg KVL-profilja érintetlen marad (ugyanaz a minta, mint a szigorú EP-nél).
+Egy számlán **vagy EP, vagy céges** vevő lehet, nem mindkettő. A postai utánvétes
+számla-duplikáció ellen **idempotencia-kulcs**: ugyanaz a kulcs a meglévő
+tervezetet adja vissza, nem hoz létre másodikat. A számlatervezet
+(`POST /invoicing/drafts`) `corporate` és `idempotencyKey` mezőin keresztül.
+Pulti demó: `?view=billing` (céges számla szekció).
 
 ### II/C — Virtuális EAN-kód Pool
 
