@@ -5,6 +5,7 @@ import { BillingPanel } from './BillingPanel';
 import { CallPanel } from './CallPanel';
 import { CallStatsView } from './CallStatsView';
 import { CompletenessPanel } from './CompletenessPanel';
+import { ContractPanel } from './ContractPanel';
 import { EanPoolAdmin } from './EanPoolAdmin';
 import { OpeningAdmin } from './OpeningAdmin';
 import { SelfServicePage } from './SelfServicePage';
@@ -23,6 +24,7 @@ import './styles.css';
  *   ?view=billing        → pulti számlázási védőháló (II/D + II/B EP)
  *   ?view=ean-pool       → EAN-kód pool admin (II/C)
  *   ?view=settlement     → elszámolás és statisztika (II/E)
+ *   ?view=contract       → pulti szerződéskötés (III/A)
  *   (alapértelmezett)    → páciens adatlap (I/A)
  * Később kiváltható egy teljes értékű routerrel.
  */
@@ -37,6 +39,7 @@ function Root() {
   if (view === 'billing') return <BillingPanel />;
   if (view === 'ean-pool') return <EanPoolAdmin />;
   if (view === 'settlement') return <SettlementPanel />;
+  if (view === 'contract') return <ContractPanel />;
   return <App />;
 }
 

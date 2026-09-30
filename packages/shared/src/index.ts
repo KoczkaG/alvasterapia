@@ -12,3 +12,4 @@ export * from './health-fund.js';
 export * from './ean-pool.js';
 export * from './corporate-billing.js';
 export * from './settlement.js';
+export * from './contract.js';
