@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { BillingPanel } from './BillingPanel';
 import { CallPanel } from './CallPanel';
 import { CallStatsView } from './CallStatsView';
 import { CompletenessPanel } from './CompletenessPanel';
@@ -17,6 +18,7 @@ import './styles.css';
  *   ?view=timeline       → ügyféltörténet idővonal (I/D)
  *   ?view=completeness   → „adatlap hiányos" pulti panel (I/F)
  *   ?view=self-service   → betegoldali önkiszolgáló adatpótlás (I/F, ?token=…)
+ *   ?view=billing        → pulti számlázási védőháló (II/D)
  *   (alapértelmezett)    → páciens adatlap (I/A)
  * Később kiváltható egy teljes értékű routerrel.
  */
@@ -28,6 +30,7 @@ function Root() {
   if (view === 'timeline') return <TimelineView />;
   if (view === 'completeness') return <CompletenessPanel />;
   if (view === 'self-service') return <SelfServicePage />;
+  if (view === 'billing') return <BillingPanel />;
   return <App />;
 }
 

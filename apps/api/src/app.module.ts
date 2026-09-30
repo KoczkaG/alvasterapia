@@ -5,6 +5,7 @@ import { CallsModule } from './calls/calls.module';
 import { CompletenessModule } from './completeness/completeness.module';
 import { DatabaseModule } from './database/database.module';
 import { HealthController } from './health.controller';
+import { InvoicingModule } from './invoicing/invoicing.module';
 import { KvlModule } from './kvl/kvl.module';
 import { NotificationModule } from './notifications/notification.module';
 import { PatientsModule } from './patients/patients.module';
@@ -25,6 +26,7 @@ import { TimelineModule } from './timeline/timeline.module';
     TasksModule,
     CallsModule,
     CompletenessModule,
+    InvoicingModule,
   ],
   controllers: [HealthController],
 })

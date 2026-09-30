@@ -57,7 +57,23 @@ npm run dev -w apps/portal  # páciens-portál
 | I/E — Hívásvégi jegyzet & statisztika | ✅ mag kész (feladatkezelő adapter mockkal) |
 | I/F — Automata „ADATLAP HIÁNYOS" protokoll | ✅ mag kész (e-mail/SMS adapter mockkal) |
 | **I. MODUL — teljes** | ✅ mind a 6 rész (A–F) magja kész |
-| Többi modul | ⏳ tervezett |
+| II/D — Pulti védőháló & számlázás | ✅ mag kész (terminál/NAV adapter mockkal) |
+| Többi II. modul rész (A, B, C, E) | ⏳ tervezett |
+
+### II/D — Pulti Védőháló és Terminál-Kassza
+
+Megakadályozza a hibás pulti kódbevitelt és fizetési párosításokat MÉG a számla
+élesedése előtt (a dokumentum szerinti „stornó-hullám" megállítása):
+- **Kód-validátor**: vénykód `27`-, matrica `21`-, orvoskód `99`-kezdetű; +
+  Ctrl+V duplikáció szűrő.
+- **Kétirányú zárási szűrő**: postaköltség ⇄ fizetési mód összeférhetőség.
+- **Terminál-védőháló**: bankkártyás elutasításnál (limit/fedezet) a számla
+  **nem élesedik** (nincs NAV-szám, nincs stornó), a tervezet nyitva marad.
+  Éles NAV-számla csak sikeres fizetés után; a kiállítás a Timeline-ra kerül.
+
+Végpontok: `POST /invoicing/validate-code`, `POST /invoicing/drafts`,
+`POST /invoicing/drafts/:id/finalize`. Terminál + NAV/e-számla az `InvoicePort`
+mögött (mock). Pulti demó: `?view=billing`.
 
 ### I/F — Automata „ADATLAP HIÁNYOS" riasztási protokoll
 
