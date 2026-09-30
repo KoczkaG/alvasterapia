@@ -50,5 +50,20 @@ npm run dev -w apps/portal  # páciens-portál
 
 | Modul | Állapot |
 |-------|---------|
-| I/A — Online GDPR & Adatlap-kitöltő | 🚧 folyamatban |
+| I/A — Online GDPR & Adatlap-kitöltő | ✅ mag kész (KVL-függő pontok mockkal) |
+| I/B — Nyitvatartási naptár & IVR-zsilip | ✅ mag kész (IVR/webshop/Google szinkron mockkal) |
 | Többi modul | ⏳ tervezett |
+
+### I/B — Nyitvatartási Naptár Modul
+
+A cég **egyetlen központi igazságforrása** a nyitvatartásra. Heti alap-rend +
+dátum-felülírások (ünnepek, ledolgozós szombatok, rövidített napok). Bármilyen
+módosítás automatikusan szinkronizálódik az **IVR / webshop / Google Business**
+felé (jelenleg mock adapterekkel). Végpontok:
+
+- `GET /opening/status` — „nyitva van-e most?” + következő nyitás (IVR/webshop hívja),
+- `GET /opening/calendar` — teljes naptár,
+- `PUT /admin/opening/weekly`, `PUT|DELETE /admin/opening/overrides` — karbantartás,
+- `GET /admin/opening/holiday-suggestions/:year` — magyar munkaszüneti napok importja.
+
+Admin felület: a páciens-portál `?view=opening-admin` nézete.
