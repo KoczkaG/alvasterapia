@@ -52,8 +52,24 @@ npm run dev -w apps/portal  # páciens-portál
 |-------|---------|
 | I/A — Online GDPR & Adatlap-kitöltő | ✅ mag kész (KVL-függő pontok mockkal) |
 | I/B — Nyitvatartási naptár & IVR-zsilip | ✅ mag kész (IVR/webshop/Google szinkron mockkal) |
-| I/C — Click-to-Call & jogi napló | ✅ mag kész (VoIP + Timeline adapter mockkal) |
+| I/C — Click-to-Call & jogi napló | ✅ mag kész (VoIP adapter mockkal) |
+| I/D — Központi Ügyféltörténet Idővonal | ✅ mag kész (KVL-események adapter mockkal) |
 | Többi modul | ⏳ tervezett |
+
+### I/D — Központi Ügyféltörténet Idővonal (Timeline)
+
+Az eddig szétszórt adatszigetek egyetlen, időrendi, görgethető nézetben. A belső
+események (I/A GDPR/parkoltatás, I/C hívások) és a KVL-eredetű események
+(számlák a **konkrét termék-/modellnévvel**, raktárközi mozgások, csomagstátuszok)
+lekérdezéskor fésülődnek össze. Minden lekérdezés **audit-logba** kerül
+(egészségügyi adat READ művelete). A **Philips-csereprojekt** adatai egyszeri
+Excel-importtal tölthetők fel; érintett betegnél az adatlap megnyitásakor
+**kötelező piros riasztás** jelenik meg a gépcsere-adatokkal. Végpontok:
+
+- `GET /timeline/:partnerCode` — teljes idővonal + Philips-riasztás egy hívásban,
+- `POST /timeline/philips-recall/import` — a csereprojekt adatainak importja.
+
+Pulti demó: `?view=timeline`.
 
 ### I/B — Nyitvatartási Naptár Modul
 

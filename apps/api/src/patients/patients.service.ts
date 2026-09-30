@@ -7,6 +7,7 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { DatabaseService } from '../database/database.service';
 import { KVL_PORT, type KvlPort, type KvlSearchResult } from '../kvl/kvl.port';
+import { TIMELINE_PORT, type TimelinePort } from '../timeline/timeline.port';
 
 export interface SubmissionContext {
   channel: 'online' | 'kiosk';
@@ -40,6 +41,7 @@ export class PatientsService {
     private readonly db: DatabaseService,
     private readonly audit: AuditService,
     @Inject(KVL_PORT) private readonly kvl: KvlPort,
+    @Inject(TIMELINE_PORT) private readonly timeline: TimelinePort,
   ) {}
 
   /** Régi ügyfél előhívása születési dátum vagy partnerkód alapján (I/A 3.). */
@@ -185,7 +187,26 @@ export class PatientsService {
       );
     }
 
-    // 5. Beküldés naplózása.
+    // 5. Idővonal-események (I/D): a rögzített hozzájárulás mindig, a
+    //    parkoltatás pedig, ha bekapcsolt.
+    await this.timeline.append({
+      partnerCode,
+      type: 'GDPR_CONSENT_RECORDED',
+      text: `Adatlap és GDPR-nyilatkozat rögzítve (${ctx.channel === 'kiosk' ? 'pulti tablet' : 'online'})`,
+      occurredAt: acceptedAt,
+      detail: { channel: ctx.channel, policyVersion: CURRENT_POLICY_VERSION },
+    });
+    if (parked && parkedUntil) {
+      await this.timeline.append({
+        partnerCode,
+        type: 'GDPR_PARKOLTATAS_LEZARVA',
+        text: 'Számla-parkoltatás indult (nincs postai/e-mailes hozzájárulás) — pulti egyeztetés szükséges',
+        occurredAt: acceptedAt,
+        detail: { reason: 'zero_consent', expiresAt: parkedUntil },
+      });
+    }
+
+    // 6. Beküldés naplózása.
     await this.audit.record({
       actor: `portal:${ctx.channel}`,
       action: 'CREATE',

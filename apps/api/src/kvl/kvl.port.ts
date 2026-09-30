@@ -49,6 +49,18 @@ export interface KvlTimelineEvent {
 }
 
 /**
+ * A KVL-ből lekérdezett, idővonalra fésülendő esemény (pénzügy, raktár,
+ * logisztika). A `type` a @somnoshop/shared eseménytípusai közül való
+ * (pl. 'INVOICE_ISSUED', 'STOCK_MOVEMENT', 'PACKAGE_DELIVERED').
+ */
+export interface KvlSourcedEvent {
+  type: string;
+  text: string;
+  occurredAt: string;
+  detail?: Record<string, unknown>;
+}
+
+/**
  * A KVL-adapter interfésze. Injekciós tokenként a KVL_PORT-ot használjuk.
  */
 export interface KvlPort {
@@ -72,6 +84,13 @@ export interface KvlPort {
     partnerCode: string,
     event: KvlTimelineEvent,
   ): Promise<void>;
+
+  /**
+   * A partnerhez tartozó KVL-eredetű események lekérdezése az idővonalhoz
+   * (számlák a termék/modellnévvel, raktárközi mozgások, csomagstátuszok).
+   * Az I/D nézet ezt fésüli össze a belső (append-only) eseményekkel.
+   */
+  fetchTimelineEvents(partnerCode: string): Promise<KvlSourcedEvent[]>;
 }
 
 export const KVL_PORT = Symbol('KVL_PORT');

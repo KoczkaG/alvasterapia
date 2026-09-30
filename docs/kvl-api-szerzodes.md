@@ -110,6 +110,44 @@ POST /api/partners/{partnerCode}/timeline
 { "type": "GDPR_PARKOLTATAS_LEZARVA", "text": "...", "occurredAt": "..." }
 ```
 
+## 5. Idővonal-események lekérdezése (Timeline összefésülés, I/D)
+
+A Központi Ügyféltörténet Idővonal a **belső** események mellé a KVL-ből is
+lekérdezi a pénzügyi / raktári / logisztikai eseményeket, és egyetlen időrendi
+nézetbe fésüli. A kért végpont:
+
+```
+GET /api/partners/{partnerCode}/timeline-events
+```
+
+**Válasz — események listája:**
+```json
+[
+  {
+    "type": "INVOICE_ISSUED",
+    "text": "Számla — Prisma Smart Plus CPAP készülék",
+    "occurredAt": "2025-11-12T09:30:00.000Z",
+    "detail": {
+      "invoiceNumber": "SZ-2025-004521",
+      "items": [{ "name": "Prisma Smart Plus CPAP", "model": "Prisma Smart Plus" }]
+    }
+  },
+  { "type": "STOCK_MOVEMENT",   "text": "...", "occurredAt": "...", "detail": {} },
+  { "type": "PACKAGE_DELIVERED","text": "...", "occurredAt": "...", "detail": {} }
+]
+```
+
+**Fontos (I/D kritikus elvárás):** a számláknál ne csak a sorszám szerepeljen,
+hanem a **konkrét termék- és modellnév** is olvasható legyen (a `detail.items`
+tömbben), hogy a pultos kikeresgélés nélkül lássa, milyen eszköze van a betegnek.
+
+**Típusok** (a mi oldalunkon kategóriákba képződnek): `INVOICE_ISSUED`,
+`RECEIPT_ISSUED`, `REFUND_ISSUED`, `STOCK_MOVEMENT`, `DEVICE_HANDOUT`,
+`PACKAGE_SENT`, `PACKAGE_IN_TRANSIT`, `PACKAGE_DELIVERED`, `PACKAGE_FAILED`.
+
+> A futárstátuszokat (GLS/MPL) a KVL is szolgáltathatja ezen a végponton, vagy
+> külön futár-API adapterrel kötjük be — egyeztetés kérdése (lásd IV. modul).
+
 ---
 
 ## Nyitott kérdések a KVL-csapat felé

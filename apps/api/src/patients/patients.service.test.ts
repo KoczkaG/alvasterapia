@@ -65,14 +65,23 @@ describe('PatientsService — adatlap-beküldés (I/A)', () => {
   let db: FakeDb;
   let service: PatientsService;
 
+  let timelineEvents: { type: string; partnerCode: string }[];
+
   beforeEach(() => {
     db = new FakeDb();
     const audit = new AuditService(db as unknown as DatabaseService);
     const kvl = new KvlMockAdapter();
+    timelineEvents = [];
+    const timeline = {
+      append: async (e: { type: string; partnerCode: string }) => {
+        timelineEvents.push({ type: e.type, partnerCode: e.partnerCode });
+      },
+    };
     service = new PatientsService(
       db as unknown as DatabaseService,
       audit,
       kvl,
+      timeline as never,
     );
   });
 
@@ -85,6 +94,10 @@ describe('PatientsService — adatlap-beküldés (I/A)', () => {
     expect(db.countInserts('consents')).toBe(1);
     // nem indult parkoltatás
     expect(db.countInserts('parked_documents')).toBe(0);
+    // a hozzájárulás rákerült az idővonalra (I/D)
+    expect(timelineEvents.some((e) => e.type === 'GDPR_CONSENT_RECORDED')).toBe(
+      true,
+    );
   });
 
   it('a hozzájárulás jogi metaadatait (IP, policy verzió) a szerver rögzíti', async () => {
