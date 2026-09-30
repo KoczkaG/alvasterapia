@@ -52,6 +52,7 @@ npm run dev -w apps/portal  # páciens-portál
 |-------|---------|
 | I/A — Online GDPR & Adatlap-kitöltő | ✅ mag kész (KVL-függő pontok mockkal) |
 | I/B — Nyitvatartási naptár & IVR-zsilip | ✅ mag kész (IVR/webshop/Google szinkron mockkal) |
+| I/C — Click-to-Call & jogi napló | ✅ mag kész (VoIP + Timeline adapter mockkal) |
 | Többi modul | ⏳ tervezett |
 
 ### I/B — Nyitvatartási Naptár Modul
@@ -67,3 +68,20 @@ felé (jelenleg mock adapterekkel). Végpontok:
 - `GET /admin/opening/holiday-suggestions/:year` — magyar munkaszüneti napok importja.
 
 Admin felület: a páciens-portál `?view=opening-admin` nézete.
+
+### I/C — Szoftverből indított kimenő hívások (Click-to-Call)
+
+A kimenő hívások életciklusa a **jogi védelemre** fókuszálva. A kolléga a beteg
+bármely regisztrált száma mellől (mobil / vezetékes / jogosult kapcsolattartó)
+hívást indíthat; a rendszer kezeli a kötelező GDPR-figyelmeztetést, a rögzítés
+engedélyezését/tiltását, és a hívás tényét a beteg **idővonalára** (Timeline)
+linkeli. A hívott fél tiltása esetén a felvétel **azonnal leáll és törlődik**, a
+művelet pedig **módosíthatatlan Audit Trail** bejegyzést kap (idő, kezelő, ok) —
+ez a cég jogi bizonyítéka. Végpontok:
+
+- `POST /calls` — hívás indítása; `POST /calls/:id/recording/{grant|refuse}`;
+  `POST /calls/:id/complete`; `GET /calls/meta/scripts` (GDPR-sablon + érvkészlet).
+
+A tényleges hangkapcsolást/rögzítést külső **VoIP**-szolgáltató végzi (adapter
+mögött, jelenleg mock). A **Timeline** (`TimelinePort`) minimál DB-implementációt
+kap; az I/D majd teljes körűvé bővíti. Pulti demó: `?view=call-panel`.
