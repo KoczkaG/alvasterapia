@@ -59,7 +59,22 @@ npm run dev -w apps/portal  # páciens-portál
 | **I. MODUL — teljes** | ✅ mind a 6 rész (A–F) magja kész |
 | II/D — Pulti védőháló & számlázás | ✅ mag kész (terminál/NAV adapter mockkal) |
 | II/B — Egészségpénztári (EP) adatkapu | ✅ mag kész |
-| Többi II. modul rész (A, C, E) | ⏳ tervezett |
+| II/C — Virtuális EAN-kód pool & hibrid e-számlázás | ✅ mag kész |
+| Többi II. modul rész (A, E) | ⏳ tervezett |
+
+### II/C — Virtuális EAN-kód Pool
+
+A TB-támogatott (vényes) eszközök hatósági azonosítóit (EAN-matricák)
+digitalizálja. A hatóságtól kapott sorszámokból **digitális tömb** (pool) épül —
+feltöltés **tartományból VAGY explicit listából**. Vényes értékesítés
+véglegesítésekor a rendszer **atomikusan, versenymentesen** osztja ki a legkisebb
+szabad kódot, és ráégeti a számlára; a Timeline is rögzíti. Ha a szabad készlet a
+**kritikus szint alá** esik, a status ezt jelzi (új tömb igénylése). Végpontok:
+`GET /ean-pool/status`, `POST /ean-pool/upload`, `POST /ean-pool/allocate`.
+Admin demó: `?view=ean-pool`; a vényes jelölés a `?view=billing` panelen.
+
+A hibrid e-számla kiadás (digitális/papír a beteg e-mailje alapján) logikája a
+`decideInvoiceDelivery` segédben; a tényleges e-számla az `InvoicePort` mögött.
 
 ### II/B — Integrált Egészségpénztári (EP) Adatkapu
 

@@ -16,6 +16,7 @@ import {
 } from '@somnoshop/shared';
 import { AuditService } from '../audit/audit.service';
 import { DatabaseService } from '../database/database.service';
+import { EanPoolService } from '../ean-pool/ean-pool.service';
 import { KVL_PORT, type KvlPort } from '../kvl/kvl.port';
 import { TIMELINE_PORT, type TimelinePort } from '../timeline/timeline.port';
 import { HealthFundService } from './health-fund.service';
@@ -30,6 +31,10 @@ export interface DraftRecord {
   status: string;
   /** A számla vevő-adata (EP-nél összefűzött név; szigorúnál székhely+adószám). */
   payee: InvoicePayee | null;
+  /** TB-támogatott (vényes) értékesítés? */
+  prescription: boolean;
+  /** A kiosztott hatósági EAN-kód (vényes számlánál). */
+  eanCode: string | null;
   invoiceNumber: string | null;
   pdfUri: string | null;
 }
@@ -59,6 +64,7 @@ export class InvoicingService {
     private readonly db: DatabaseService,
     private readonly audit: AuditService,
     private readonly healthFunds: HealthFundService,
+    private readonly eanPool: EanPoolService,
     @Inject(INVOICE_PORT) private readonly invoices: InvoicePort,
     @Inject(TIMELINE_PORT) private readonly timeline: TimelinePort,
     @Inject(KVL_PORT) private readonly kvl: KvlPort,
@@ -88,8 +94,8 @@ export class InvoicingService {
 
     const res = await this.db.query<{ id: string }>(
       `INSERT INTO invoice_drafts
-         (partner_code, items, payment, amount_gross, payee, status, operator)
-       VALUES ($1, $2, $3, $4, $5, 'draft', $6)
+         (partner_code, items, payment, amount_gross, payee, prescription, status, operator)
+       VALUES ($1, $2, $3, $4, $5, $6, 'draft', $7)
        RETURNING id`,
       [
         input.partnerCode,
@@ -97,6 +103,7 @@ export class InvoicingService {
         input.payment,
         amount,
         payee ? JSON.stringify(payee) : null,
+        input.prescription ?? false,
         operator,
       ],
     );
@@ -194,6 +201,22 @@ export class InvoicingService {
       }
     }
 
+    // Vényes értékesítésnél a következő szabad hatósági EAN-kód kiosztása a
+    // pool-ból, és ráégetése a bizonylatra (II/C 2. pont). Üres pool → 409.
+    let eanCode: string | null = draft.eanCode;
+    if (draft.prescription && !eanCode) {
+      const alloc = await this.eanPool.allocate({
+        partnerCode: draft.partnerCode,
+        ref: draftId,
+        actor: operator,
+      });
+      eanCode = alloc.code;
+      await this.db.query(
+        `UPDATE invoice_drafts SET ean_code = $1 WHERE id = $2`,
+        [eanCode, draftId],
+      );
+    }
+
     // Éles NAV-számla kiállítása (sikeres fizetés után).
     const issued = await this.invoices.issueInvoice({
       partnerCode: draft.partnerCode,
@@ -227,6 +250,7 @@ export class InvoicingService {
         invoiceNumber: issued.invoiceNumber,
         amount: draft.amountGross,
         payment: draft.payment,
+        ...(eanCode ? { eanCode } : {}),
       },
     });
 
@@ -241,12 +265,14 @@ export class InvoicingService {
       payment: PaymentMethod;
       amount_gross: string | number;
       payee: InvoicePayee | null;
+      prescription: boolean;
+      ean_code: string | null;
       status: string;
       invoice_number: string | null;
       pdf_uri: string | null;
     }>(
-      `SELECT id, partner_code, items, payment, amount_gross, payee, status,
-              invoice_number, pdf_uri
+      `SELECT id, partner_code, items, payment, amount_gross, payee, prescription,
+              ean_code, status, invoice_number, pdf_uri
          FROM invoice_drafts WHERE id = $1`,
       [draftId],
     );
@@ -259,6 +285,8 @@ export class InvoicingService {
       payment: r.payment,
       amountGross: Number(r.amount_gross),
       payee: r.payee ?? null,
+      prescription: r.prescription ?? false,
+      eanCode: r.ean_code ?? null,
       status: r.status,
       invoiceNumber: r.invoice_number,
       pdfUri: r.pdf_uri,
