@@ -7,6 +7,7 @@ import { HealthController } from './health.controller';
 import { KvlModule } from './kvl/kvl.module';
 import { PatientsModule } from './patients/patients.module';
 import { PostalCodeModule } from './postal-code/postal-code.module';
+import { TasksModule } from './tasks/tasks.module';
 import { TimelineModule } from './timeline/timeline.module';
 
 @Module({
@@ -18,6 +19,7 @@ import { TimelineModule } from './timeline/timeline.module';
     PatientsModule,
     CalendarModule,
     TimelineModule,
+    TasksModule,
     CallsModule,
   ],
   controllers: [HealthController],

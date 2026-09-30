@@ -1,4 +1,10 @@
-import type { PhoneKind, StartCall } from '@somnoshop/shared';
+import type {
+  CallNote,
+  CallTopic,
+  PhoneKind,
+  Referrer,
+  StartCall,
+} from '@somnoshop/shared';
 
 const BASE = '/api';
 
@@ -73,16 +79,33 @@ export async function refuseRecording(
   );
 }
 
-export async function completeCall(
+export async function getReferrers(): Promise<Referrer[]> {
+  return handle<Referrer[]>(await fetch(`${BASE}/calls/meta/referrers`));
+}
+
+export async function completeCallWithNote(
   callId: string,
   outcome: 'completed' | 'failed',
+  note: CallNote,
   operator: string,
 ): Promise<CallRecord> {
   return handle<CallRecord>(
-    await fetch(`${BASE}/calls/${callId}/complete`, {
+    await fetch(`${BASE}/calls/${callId}/complete-with-note`, {
       method: 'POST',
       headers: operatorHeader(operator),
-      body: JSON.stringify({ outcome }),
+      body: JSON.stringify({ outcome, note }),
     }),
   );
+}
+
+export interface CallStatsSummary {
+  range: { from: string | null; to: string | null };
+  totalNotes: number;
+  topicBreakdown: { topic: CallTopic; count: number; percent: number }[];
+  referrerRanking: { referrerId: string; count: number }[];
+  followUpCount: number;
+}
+
+export async function getCallStats(): Promise<CallStatsSummary> {
+  return handle<CallStatsSummary>(await fetch(`${BASE}/admin/call-stats`));
 }

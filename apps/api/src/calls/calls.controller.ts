@@ -6,7 +6,10 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
+import { z } from 'zod';
 import {
+  callNoteSchema,
+  DEFAULT_REFERRERS,
   OUTBOUND_RECORDING_NOTICE,
   RECORDING_REASSURANCE_SCRIPT,
   startCallSchema,
@@ -14,6 +17,13 @@ import {
 } from '@somnoshop/shared';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { CallsService } from './calls.service';
+
+/** A jegyzetes lezárás kérés-törzse: kimenetel + a kötelező hívásvégi jegyzet. */
+const completeWithNoteSchema = z.object({
+  outcome: z.enum(['completed', 'failed']).default('completed'),
+  note: callNoteSchema,
+});
+type CompleteWithNote = z.infer<typeof completeWithNoteSchema>;
 
 /**
  * Kimenő hívások (Click-to-Call) végpontjai.
@@ -54,7 +64,11 @@ export class CallsController {
     return this.calls.refuseRecording(id, this.operator(operator));
   }
 
-  /** POST /calls/:id/complete — hívás lezárása (completed|failed). */
+  /**
+   * POST /calls/:id/complete — hívás lezárása (completed|failed).
+   * Megjegyzés: a jegyzet nélküli lezárás megmarad kompatibilitás miatt; a pulti
+   * felület a jegyzetes lezárást (/complete-with-note) használja (I/E).
+   */
   @Post(':id/complete')
   complete(
     @Param('id') id: string,
@@ -63,6 +77,25 @@ export class CallsController {
   ) {
     const outcome = body?.outcome === 'failed' ? 'failed' : 'completed';
     return this.calls.complete(id, outcome, this.operator(operator));
+  }
+
+  /**
+   * POST /calls/:id/complete-with-note — hívás lezárása a KÖTELEZŐ hívásvégi
+   * jegyzettel együtt (I/E). A jegyzet a Timeline-ra kerül, visszahívási igény
+   * esetén automata feladat generálódik.
+   */
+  @Post(':id/complete-with-note')
+  completeWithNote(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(completeWithNoteSchema)) body: CompleteWithNote,
+    @Headers('x-operator') operator?: string,
+  ) {
+    return this.calls.completeWithNote(
+      id,
+      body.outcome,
+      body.note,
+      this.operator(operator),
+    );
   }
 
   /**
@@ -76,6 +109,15 @@ export class CallsController {
       recordingNotice: OUTBOUND_RECORDING_NOTICE,
       reassuranceScript: RECORDING_REASSURANCE_SCRIPT,
     };
+  }
+
+  /**
+   * GET /calls/meta/referrers — a hívásvégi jegyzet küldő-intézmény
+   * legördülőjéhez (alváslaborok / kezelőorvosok törzsadata).
+   */
+  @Get('meta/referrers')
+  referrers() {
+    return DEFAULT_REFERRERS;
   }
 
   /** GET /calls/:id — a hívás aktuális állapota. */

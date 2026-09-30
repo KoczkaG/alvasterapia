@@ -1,7 +1,9 @@
-import type { PhoneKind } from '@somnoshop/shared';
+import type { CallTopic, PhoneKind, Referrer } from '@somnoshop/shared';
+import { CALL_TOPIC_LABELS } from '@somnoshop/shared';
 import { useEffect, useState } from 'react';
 import {
-  completeCall,
+  completeCallWithNote,
+  getReferrers,
   getScripts,
   grantRecording,
   refuseRecording,
@@ -11,8 +13,9 @@ import {
 } from './callsApi';
 
 /**
- * Pulti Click-to-Call panel (I/C). Egy regisztrált beteg számai mellett
- * hívásindító gombokkal, a kötelező GDPR-sablonnal és a rögzítés-kezeléssel.
+ * Pulti Click-to-Call panel (I/C + I/E). Egy regisztrált beteg számai mellett
+ * hívásindító gombokkal, a kötelező GDPR-sablonnal, a rögzítés-kezeléssel, és a
+ * hívás végén a KÖTELEZŐ, strukturált hívásvégi jegyzettel (I/E).
  *
  * (Demó-adatok: valós használatban a beteg adatlapjáról / KVL-ből jönnek a
  * számok. A kezelő azonosítója később az Auth modulból.)
@@ -35,17 +38,39 @@ const DEMO_PARTNER = {
 };
 
 const OPERATOR = 'pult.demo'; // placeholder; később Auth
+const ALL_TOPICS = Object.keys(CALL_TOPIC_LABELS) as CallTopic[];
 
 export function CallPanel() {
   const [scripts, setScripts] = useState<CallScripts | null>(null);
+  const [referrers, setReferrers] = useState<Referrer[]>([]);
   const [call, setCall] = useState<CallRecord | null>(null);
   const [showReassurance, setShowReassurance] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // A kötelező hívásvégi jegyzet állapota (I/E). A jegyzet-ablak akkor jelenik
+  // meg, amikor a kolléga a lezárást kezdeményezi — és amíg nincs kitöltve,
+  // a hívás nem zárható le.
+  const [closing, setClosing] = useState<null | 'completed' | 'failed'>(null);
+  const [topics, setTopics] = useState<CallTopic[]>([]);
+  const [referrerId, setReferrerId] = useState('');
+  const [summary, setSummary] = useState('');
+  const [followUp, setFollowUp] = useState(false);
+
   useEffect(() => {
-    void getScripts().then(setScripts).catch(() => setError('A szövegek betöltése sikertelen.'));
+    void getScripts()
+      .then(setScripts)
+      .catch(() => setError('A szövegek betöltése sikertelen.'));
+    void getReferrers().then(setReferrers).catch(() => undefined);
   }, []);
+
+  function resetNote() {
+    setClosing(null);
+    setTopics([]);
+    setReferrerId('');
+    setSummary('');
+    setFollowUp(false);
+  }
 
   async function handleDial(kind: PhoneKind, number: string) {
     setError(null);
@@ -62,6 +87,7 @@ export function CallPanel() {
       );
       setCall(rec);
       setShowReassurance(false);
+      resetNote();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Hívásindítási hiba.');
     } finally {
@@ -80,6 +106,48 @@ export function CallPanel() {
       setBusy(false);
     }
   }
+
+  function toggleTopic(t: CallTopic) {
+    setTopics((cur) =>
+      cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t],
+    );
+  }
+
+  async function submitNote() {
+    if (!call || !closing) return;
+    if (topics.length === 0) {
+      setError('Jelöljön meg legalább egy témát.');
+      return;
+    }
+    if (summary.trim().length < 3) {
+      setError('Az összefoglaló kitöltése kötelező.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const rec = await completeCallWithNote(
+        call.id,
+        closing,
+        {
+          topics,
+          referrerId: referrerId || undefined,
+          summary: summary.trim(),
+          followUpNeeded: followUp,
+        },
+        OPERATOR,
+      );
+      setCall(rec);
+      resetNote();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'A jegyzet mentése sikertelen.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const callClosed =
+    call && (call.status === 'completed' || call.status === 'failed');
 
   return (
     <div className="page">
@@ -114,7 +182,7 @@ export function CallPanel() {
               type="button"
               className="btn btn-secondary"
               style={{ width: 'auto', marginTop: 0, padding: '10px 16px' }}
-              disabled={busy || (call !== null && call.status === 'dialing')}
+              disabled={busy || (call !== null && !callClosed)}
               onClick={() => handleDial(n.kind, n.number)}
             >
               📞 Hívás
@@ -173,7 +241,9 @@ export function CallPanel() {
                 style={{ marginTop: 12 }}
                 onClick={() => setShowReassurance((v) => !v)}
               >
-                {showReassurance ? 'Érvkészlet elrejtése' : 'Az ügyfél gyanakszik? (érvkészlet)'}
+                {showReassurance
+                  ? 'Érvkészlet elrejtése'
+                  : 'Az ügyfél gyanakszik? (érvkészlet)'}
               </button>
             </>
           )}
@@ -188,16 +258,15 @@ export function CallPanel() {
             <div className="banner ok">A rögzítés engedélyezve.</div>
           )}
 
-          {call.status !== 'completed' && call.status !== 'failed' && (
+          {/* Lezárás kezdeményezése — a jegyzet-ablak megnyitása */}
+          {!callClosed && !closing && (
             <div className="row" style={{ marginTop: 16 }}>
               <button
                 type="button"
                 className="btn"
                 style={{ marginTop: 0 }}
                 disabled={busy}
-                onClick={() =>
-                  act(() => completeCall(call.id, 'completed', OPERATOR))
-                }
+                onClick={() => setClosing('completed')}
               >
                 Hívás lezárása
               </button>
@@ -206,22 +275,20 @@ export function CallPanel() {
                 className="btn btn-secondary"
                 style={{ marginTop: 0 }}
                 disabled={busy}
-                onClick={() =>
-                  act(() => completeCall(call.id, 'failed', OPERATOR))
-                }
+                onClick={() => setClosing('failed')}
               >
                 Nem vették fel
               </button>
             </div>
           )}
 
-          {(call.status === 'completed' || call.status === 'failed') && (
+          {callClosed && (
             <div
               className={`banner ${call.status === 'completed' ? 'ok' : 'warn'}`}
               style={{ marginTop: 12 }}
             >
-              A hívás lezárva ({call.status}). A hívás ténye a beteg
-              idővonalára került.
+              A hívás lezárva ({call.status}), a jegyzet a beteg idővonalára
+              került.
               {call.recordingUri && (
                 <>
                   <br />
@@ -230,6 +297,96 @@ export function CallPanel() {
               )}
             </div>
           )}
+        </section>
+      )}
+
+      {/* KÖTELEZŐ hívásvégi jegyzet (I/E) — amíg nincs kitöltve, nincs lezárás */}
+      {call && closing && !callClosed && (
+        <section className="card">
+          <h2>Hívásvégi jegyzet (kötelező)</h2>
+          <p className="hint">
+            A hívás csak a jegyzet kitöltése után zárható le.
+          </p>
+
+          <label>A hívás témája (legalább egy)</label>
+          <div className="consent-group">
+            {ALL_TOPICS.map((t) => (
+              <label className="consent-item" key={t}>
+                <input
+                  type="checkbox"
+                  checked={topics.includes(t)}
+                  onChange={() => toggleTopic(t)}
+                />
+                <span className="consent-text">{CALL_TOPIC_LABELS[t]}</span>
+              </label>
+            ))}
+          </div>
+
+          <label htmlFor="ref">Küldő intézmény / alváslabor</label>
+          <select
+            id="ref"
+            value={referrerId}
+            onChange={(e) => setReferrerId(e.target.value)}
+          >
+            <option value="">— nincs / nem releváns —</option>
+            {referrers.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+
+          <label htmlFor="sum">Összefoglaló (kötelező)</label>
+          <textarea
+            id="sum"
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
+            rows={3}
+            style={{
+              width: '100%',
+              padding: '11px 12px',
+              fontSize: 16,
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              fontFamily: 'inherit',
+            }}
+            placeholder="A beszélgetés lényege és a megbeszélt megoldás…"
+          />
+
+          <label
+            className="consent-item"
+            style={{ borderBottom: 'none', marginTop: 8 }}
+          >
+            <input
+              type="checkbox"
+              checked={followUp}
+              onChange={(e) => setFollowUp(e.target.checked)}
+            />
+            <span className="consent-text">
+              Visszahívás / teendő szükséges (automata feladat generálódik)
+            </span>
+          </label>
+
+          <div className="row" style={{ marginTop: 8 }}>
+            <button
+              type="button"
+              className="btn"
+              style={{ marginTop: 0 }}
+              disabled={busy}
+              onClick={submitNote}
+            >
+              Jegyzet mentése és lezárás
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ marginTop: 0 }}
+              disabled={busy}
+              onClick={() => setClosing(null)}
+            >
+              Mégsem
+            </button>
+          </div>
         </section>
       )}
     </div>

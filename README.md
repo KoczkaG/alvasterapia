@@ -54,7 +54,23 @@ npm run dev -w apps/portal  # páciens-portál
 | I/B — Nyitvatartási naptár & IVR-zsilip | ✅ mag kész (IVR/webshop/Google szinkron mockkal) |
 | I/C — Click-to-Call & jogi napló | ✅ mag kész (VoIP adapter mockkal) |
 | I/D — Központi Ügyféltörténet Idővonal | ✅ mag kész (KVL-események adapter mockkal) |
+| I/E — Hívásvégi jegyzet & statisztika | ✅ mag kész (feladatkezelő adapter mockkal) |
 | Többi modul | ⏳ tervezett |
+
+### I/E — Bővített hívásvégi jegyzet és statisztikai dashboard
+
+A hívás lezárásához **kötelező, strukturált jegyzet** kapcsolódik: checkboxos
+témák (rendelés, vénybeváltás, panasz stb.), küldő intézmény / alváslabor
+legördülő, és kötelező szöveges összefoglaló, amely a beteg **idővonalára**
+kerül. Visszahívási igény esetén **automata feladat** generálódik (a belső
+Feladatkezelő — `TaskPort` — minimál implementációja mögött; a VII/E bővíti).
+A hívásvégi jegyzetekből **vezetői statisztika** épül. Végpontok:
+
+- `POST /calls/:id/complete-with-note` — jegyzetes lezárás,
+- `GET /calls/meta/referrers` — küldő intézmények törzsadata,
+- `GET /admin/call-stats` — téma-megoszlás, labor-rangsor, visszahívások.
+
+Pulti demó: `?view=call-panel` (jegyzet), vezetői nézet: `?view=call-stats`.
 
 ### I/D — Központi Ügyféltörténet Idővonal (Timeline)
 
