@@ -214,3 +214,83 @@ select:focus {
   font-size: 14px;
   padding: 0;
 }
+
+/* --- Timeline (I/D) --- */
+.timeline {
+  position: relative;
+  margin-top: 8px;
+}
+.tl-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eef1f5;
+}
+.tl-item:last-child {
+  border-bottom: none;
+}
+.tl-badge {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #fff;
+}
+.tl-body {
+  flex: 1;
+  min-width: 0;
+}
+.tl-text {
+  font-weight: 600;
+  font-size: 14px;
+}
+.tl-meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.tl-detail {
+  font-size: 12px;
+  color: #45505c;
+  margin-top: 4px;
+  background: #f7f9fb;
+  border-radius: 6px;
+  padding: 6px 8px;
+  overflow-x: auto;
+}
+.tl-source {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  background: #eef2f7;
+  color: #55606c;
+}
+
+/* Kategória-színek */
+.cat-communication { background: #1f6feb; }
+.cat-finance       { background: #1a7f4b; }
+.cat-inventory     { background: #8a6d1f; }
+.cat-logistics     { background: #7b3fe4; }
+.cat-service       { background: #b7791f; }
+.cat-consent       { background: #4b5563; }
+.cat-alert         { background: #c0392b; }
+
+/* Philips-riasztás sáv */
+.philips-alert {
+  background: #fdeeec;
+  border: 2px solid #c0392b;
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-top: 16px;
+}
+.philips-alert h3 {
+  color: #c0392b;
+  margin: 0 0 8px;
+  font-size: 16px;
+}

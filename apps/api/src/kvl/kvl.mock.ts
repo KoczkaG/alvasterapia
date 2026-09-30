@@ -4,6 +4,7 @@ import {
   type KvlPartnerUpsert,
   type KvlPort,
   type KvlSearchResult,
+  type KvlSourcedEvent,
   type KvlTimelineEvent,
 } from './kvl.port';
 
@@ -132,5 +133,49 @@ export class KvlMockAdapter implements KvlPort {
     this.logger.debug(
       `[MOCK] appendTimeline ${partnerCode}: ${event.type} — ${event.text}`,
     );
+  }
+
+  async fetchTimelineEvents(
+    partnerCode: string,
+  ): Promise<KvlSourcedEvent[]> {
+    this.logger.debug(`[MOCK] fetchTimelineEvents ${partnerCode}`);
+    // Demó KVL-események a Timeline összefésülésének bemutatásához. A valódi
+    // adapterben ezek a KVL pénzügyi/raktári/logisztikai API-jaiból jönnek.
+    // Kritikus (I/D): a számlánál nem csak a sorszám, hanem a konkrét
+    // termék- és modellnév is olvasható.
+    if (partnerCode === 'P-000123') {
+      return [
+        {
+          type: 'INVOICE_ISSUED',
+          text: 'Számla — Prisma Smart Plus CPAP készülék',
+          occurredAt: '2025-11-12T09:30:00.000Z',
+          detail: {
+            invoiceNumber: 'SZ-2025-004521',
+            items: [
+              { name: 'Prisma Smart Plus CPAP', model: 'Prisma Smart Plus' },
+              { name: 'JOYCEeasy orrmaszk (M)', model: 'JOYCEeasy' },
+            ],
+            gross: 189000,
+          },
+        },
+        {
+          type: 'STOCK_MOVEMENT',
+          text: 'Próbagép kihelyezés — Prisma Smart Plus (SN: PSP-77123)',
+          occurredAt: '2025-11-12T09:35:00.000Z',
+          detail: { serialNumber: 'PSP-77123', direction: 'out' },
+        },
+        {
+          type: 'PACKAGE_DELIVERED',
+          text: 'Csomag kézbesítve (GLS) — átvette: Kovács Lajosné',
+          occurredAt: '2025-11-14T13:20:00.000Z',
+          detail: {
+            carrier: 'GLS',
+            tracking: 'GLS-998877',
+            receivedBy: 'Kovács Lajosné',
+          },
+        },
+      ];
+    }
+    return [];
   }
 }
