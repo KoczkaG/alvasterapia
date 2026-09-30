@@ -63,6 +63,34 @@ npm run dev -w apps/portal  # páciens-portál
 | II/A — Adónem-váltási adatvédelem & duplikáció-védelem | ✅ mag kész |
 | II/E — Elszámolás, kihordási idő & OEP egyeztető | ✅ mag kész (Mankó/EESZT adapter mockkal) |
 | **II. MODUL — teljes** | ✅ mind az 5 rész (A–E) magja kész |
+| III/A — Szerződés-modul (személyes kiszolgálás) | ✅ mag kész (OCR/e-aláírás/PDF adapter mockkal) |
+
+### III/A — Próbakezelési Szerződés-modul (Személyes Kiszolgálás)
+
+A papír- és Word-alapú, háromszoros manuális adatbevitel kiváltása egyetlen,
+egypontos digitális folyamattal. A szerződés életciklusa egy szigorú állapotgép:
+
+`draft → gdpr_ok → cart → paid → signed → closed`
+
+- **OCR-beemelés**: az ambuláns lap beolvasásából a beteg-adatok (név, TAJ, cím,
+  orvos, pecsétszám, terápiás nyomás) automatikusan a tervezetbe kerülnek. A beteg
+  KVL-profilja **érintetlen** marad — ez a szerződés saját adata.
+- **GDPR-kapu**: a 4 marketing/GDPR kérdés rögzítése **kötelező**; enélkül a kosár
+  nem nyitható meg (`draft → gdpr_ok`).
+- **Kosár + fizetés**: eszköz + maszk + kaució + kötelező baktériumszűrők; a kaució
+  és az ár **egyben** megy a terminálra. Elutasításnál (pl. kártyalimit) a szerződés
+  a kosár állapotban marad — **nincs adatvesztés**, újrapróbálható.
+- **Aláírás**: alapértelmezetten **eIDAS-konform SMS-kódos** digitális aláírás
+  (a beteg mobiljára küldött kóddal); az idős/okostelefon nélküli betegeknek
+  **papíralapú fallback** ág.
+- **Lezárás**: automata **szerződés-PDF** és **jótállási jegyek** (a gyári számhoz
+  kötött garanciaévekkel), a beteg **Idővonalára** (`CONTRACT_SIGNED`) rögzítve.
+
+Végpontok: `POST /contracts/scan`, `POST /contracts`, `.../consent`, `.../cart`,
+`.../pay`, `.../sign/sms(+/confirm)`, `.../sign/paper`, `.../close`,
+`GET /contracts/:id`. Az OCR (`OcrPort`), az e-aláírás (`ESignPort`) és a PDF
+(`PdfPort`) mock adapterek mögött; a terminál-fizetés a II/D `InvoicePort`-ját
+használja újra. Pulti demó: `?view=contract`.
 
 ### II/A — Adónem-váltási Adatvédelem és Duplikáció-védelem
 

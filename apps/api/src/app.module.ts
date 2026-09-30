@@ -3,6 +3,7 @@ import { AuditModule } from './audit/audit.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { CallsModule } from './calls/calls.module';
 import { CompletenessModule } from './completeness/completeness.module';
+import { ContractsModule } from './contracts/contracts.module';
 import { DatabaseModule } from './database/database.module';
 import { EanPoolModule } from './ean-pool/ean-pool.module';
 import { HealthController } from './health.controller';
@@ -31,6 +32,7 @@ import { TimelineModule } from './timeline/timeline.module';
     InvoicingModule,
     EanPoolModule,
     SettlementModule,
+    ContractsModule,
   ],
   controllers: [HealthController],
 })

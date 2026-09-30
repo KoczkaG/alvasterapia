@@ -17,6 +17,6 @@ import { InvoicingService } from './invoicing.service';
     HealthFundService,
     { provide: INVOICE_PORT, useClass: InvoiceMockAdapter },
   ],
-  exports: [InvoicingService],
+  exports: [InvoicingService, INVOICE_PORT],
 })
 export class InvoicingModule {}
