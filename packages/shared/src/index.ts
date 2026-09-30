@@ -9,3 +9,4 @@ export * from './data-completeness.js';
 export * from './billing-validation.js';
 export * from './invoicing.js';
 export * from './health-fund.js';
+export * from './ean-pool.js';

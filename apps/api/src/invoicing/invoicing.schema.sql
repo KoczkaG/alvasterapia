@@ -10,6 +10,11 @@ CREATE TABLE IF NOT EXISTS invoice_drafts (
   -- A számla vevő-adata (EP-nél összefűzött név + esetleg székhely/adószám).
   -- JSONB: { name, address, taxNumber? }. Sima magánszemélynél NULL is lehet.
   payee          JSONB,
+  -- TB-támogatott (vényes) értékesítés? Ilyenkor véglegesítéskor EAN-kód
+  -- osztódik ki a pool-ból (II/C).
+  prescription   BOOLEAN NOT NULL DEFAULT false,
+  -- A kiosztott hatósági EAN-kód (vényes számlánál), a bizonylatra égetve.
+  ean_code       TEXT,
   -- draft | awaiting_payment | issued | cancelled
   status         TEXT NOT NULL DEFAULT 'draft',
   -- Éles számla adatai (csak issued státuszban):

@@ -48,6 +48,8 @@ export interface DraftRecord {
   payment: PaymentMethod;
   amountGross: number;
   payee: InvoicePayee | null;
+  prescription: boolean;
+  eanCode: string | null;
   status: string;
   invoiceNumber: string | null;
   pdfUri: string | null;

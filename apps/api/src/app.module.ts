@@ -4,6 +4,7 @@ import { CalendarModule } from './calendar/calendar.module';
 import { CallsModule } from './calls/calls.module';
 import { CompletenessModule } from './completeness/completeness.module';
 import { DatabaseModule } from './database/database.module';
+import { EanPoolModule } from './ean-pool/ean-pool.module';
 import { HealthController } from './health.controller';
 import { InvoicingModule } from './invoicing/invoicing.module';
 import { KvlModule } from './kvl/kvl.module';
@@ -27,6 +28,7 @@ import { TimelineModule } from './timeline/timeline.module';
     CallsModule,
     CompletenessModule,
     InvoicingModule,
+    EanPoolModule,
   ],
   controllers: [HealthController],
 })

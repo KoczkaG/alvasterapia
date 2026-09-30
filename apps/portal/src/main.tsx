@@ -5,6 +5,7 @@ import { BillingPanel } from './BillingPanel';
 import { CallPanel } from './CallPanel';
 import { CallStatsView } from './CallStatsView';
 import { CompletenessPanel } from './CompletenessPanel';
+import { EanPoolAdmin } from './EanPoolAdmin';
 import { OpeningAdmin } from './OpeningAdmin';
 import { SelfServicePage } from './SelfServicePage';
 import { TimelineView } from './TimelineView';
@@ -18,7 +19,8 @@ import './styles.css';
  *   ?view=timeline       → ügyféltörténet idővonal (I/D)
  *   ?view=completeness   → „adatlap hiányos" pulti panel (I/F)
  *   ?view=self-service   → betegoldali önkiszolgáló adatpótlás (I/F, ?token=…)
- *   ?view=billing        → pulti számlázási védőháló (II/D)
+ *   ?view=billing        → pulti számlázási védőháló (II/D + II/B EP)
+ *   ?view=ean-pool       → EAN-kód pool admin (II/C)
  *   (alapértelmezett)    → páciens adatlap (I/A)
  * Később kiváltható egy teljes értékű routerrel.
  */
@@ -31,6 +33,7 @@ function Root() {
   if (view === 'completeness') return <CompletenessPanel />;
   if (view === 'self-service') return <SelfServicePage />;
   if (view === 'billing') return <BillingPanel />;
+  if (view === 'ean-pool') return <EanPoolAdmin />;
   return <App />;
 }
 

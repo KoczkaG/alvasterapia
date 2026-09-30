@@ -36,6 +36,12 @@ export const createDraftSchema = z.object({
    * székhely + adószám). A beteg profiladatai ettől nem módosulnak.
    */
   ep: epFieldsSchema.optional(),
+  /**
+   * Igaz, ha ez TB-támogatott (vényes) értékesítés. Ilyenkor a véglegesítéskor
+   * a rendszer automatikusan kioszt egy hatósági EAN-kódot a pool-ból, és
+   * ráégeti a számlára (II/C 2. pont).
+   */
+  prescription: z.boolean().optional(),
 });
 export type CreateDraft = z.infer<typeof createDraftSchema>;
 

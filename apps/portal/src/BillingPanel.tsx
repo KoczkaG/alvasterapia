@@ -36,6 +36,7 @@ export function BillingPanel() {
   ]);
   const [payment, setPayment] = useState<PaymentMethod>('card');
   const [partnerCode] = useState('P-000123');
+  const [prescription, setPrescription] = useState(false);
 
   // Egészségpénztári (EP) adatkapu (II/B)
   const [funds, setFunds] = useState<HealthFund[]>([]);
@@ -110,6 +111,7 @@ export function BillingPanel() {
           partnerCode,
           items,
           payment,
+          ...(prescription ? { prescription: true } : {}),
           ...(epRequested
             ? {
                 ep: {
@@ -332,6 +334,16 @@ export function BillingPanel() {
             </option>
           ))}
         </select>
+        <label className="consent-item" style={{ borderBottom: 'none' }}>
+          <input
+            type="checkbox"
+            checked={prescription}
+            onChange={(e) => setPrescription(e.target.checked)}
+          />
+          <span className="consent-text">
+            TB-támogatott (vényes) értékesítés — automatikus EAN-kód kiosztás
+          </span>
+        </label>
         <p className="hint">
           Tipp a demóhoz: a mock terminál a 150 000 Ft feletti kártyás összeget
           „limit" hibával elutasítja — ilyenkor a számla NEM élesedik.
@@ -360,6 +372,12 @@ export function BillingPanel() {
                       — adószám: {result.draft.payee.taxNumber}
                     </>
                   )}
+                </>
+              )}
+              {result.draft.eanCode && (
+                <>
+                  <br />
+                  Kiosztott EAN-kód: <strong>{result.draft.eanCode}</strong>
                 </>
               )}
             </>
