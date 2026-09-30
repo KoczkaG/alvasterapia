@@ -55,7 +55,23 @@ npm run dev -w apps/portal  # páciens-portál
 | I/C — Click-to-Call & jogi napló | ✅ mag kész (VoIP adapter mockkal) |
 | I/D — Központi Ügyféltörténet Idővonal | ✅ mag kész (KVL-események adapter mockkal) |
 | I/E — Hívásvégi jegyzet & statisztika | ✅ mag kész (feladatkezelő adapter mockkal) |
+| I/F — Automata „ADATLAP HIÁNYOS" protokoll | ✅ mag kész (e-mail/SMS adapter mockkal) |
+| **I. MODUL — teljes** | ✅ mind a 6 rész (A–F) magja kész |
 | Többi modul | ⏳ tervezett |
+
+### I/F — Automata „ADATLAP HIÁNYOS" riasztási protokoll
+
+Az adatlap megnyitásakor ellenőrzi a kötelező kontaktmezőket (e-mail, mobil,
+TAJ). Hiány esetén riasztás + két kezelési út:
+- **„A" helyszíni frissítés**: a pultos rögzíti a hiányt → automata GDPR-igazoló
+  e-mail webshopos tereléssel;
+- **„B" önkiszolgáló link**: egyszer használatos, 72h-s tokenes link (SMS +
+  e-mail), amit a beteg otthon tölt ki; a záró képernyőn webshopos terelés.
+
+Végpontok: `GET /completeness/:pc`, `POST /completeness/:pc/update`,
+`POST /completeness/:pc/link` (pulti); `GET|POST /self-service/:token` (betegoldali).
+E-mail/SMS küldés a `NotificationPort` mögött (mock). Pulti demó:
+`?view=completeness`, betegoldali: `?view=self-service&token=…`.
 
 ### I/E — Bővített hívásvégi jegyzet és statisztikai dashboard
 

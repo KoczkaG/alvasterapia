@@ -3,7 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { CallPanel } from './CallPanel';
 import { CallStatsView } from './CallStatsView';
+import { CompletenessPanel } from './CompletenessPanel';
 import { OpeningAdmin } from './OpeningAdmin';
+import { SelfServicePage } from './SelfServicePage';
 import { TimelineView } from './TimelineView';
 import './styles.css';
 
@@ -13,6 +15,8 @@ import './styles.css';
  *   ?view=call-panel     → Click-to-Call pulti panel (I/C + I/E jegyzet)
  *   ?view=call-stats     → hívásstatisztika vezetői dashboard (I/E)
  *   ?view=timeline       → ügyféltörténet idővonal (I/D)
+ *   ?view=completeness   → „adatlap hiányos" pulti panel (I/F)
+ *   ?view=self-service   → betegoldali önkiszolgáló adatpótlás (I/F, ?token=…)
  *   (alapértelmezett)    → páciens adatlap (I/A)
  * Később kiváltható egy teljes értékű routerrel.
  */
@@ -22,6 +26,8 @@ function Root() {
   if (view === 'call-panel') return <CallPanel />;
   if (view === 'call-stats') return <CallStatsView />;
   if (view === 'timeline') return <TimelineView />;
+  if (view === 'completeness') return <CompletenessPanel />;
+  if (view === 'self-service') return <SelfServicePage />;
   return <App />;
 }
 
